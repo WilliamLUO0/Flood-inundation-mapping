@@ -1,0 +1,69 @@
+import numpy as np
+import torch
+from torch.utils.data import Dataset, DataLoader
+import os
+
+
+class NpyDataset(Dataset):
+    def __init__(self, feature_path, label_path):
+        
+        feature_list = sorted(os.listdir(feature_path))
+        label_list = sorted(os.listdir(label_path))
+
+        print(f'feature_list: {feature_list}')
+        print(f'label_list: {label_list}')
+
+        # Load all feature and label data
+        feature = np.concatenate([np.load(os.path.join(feature_path, file)) for file in feature_list], axis=0)
+        label = np.concatenate([np.load(os.path.join(label_path, file)) for file in label_list], axis=0)
+        # print(f'feature shape: {self.feature.shape}')
+        # print(f'label shape: {self.label.shape}')
+
+        # Find indices where feature is not all zeros
+        valid_indices = np.array([i for i in range(len(feature)) if np.any(feature[i])])
+
+        # Only keep samples where the feature is not all zeros
+        self.feature = feature[valid_indices]
+        self.label = label[valid_indices]
+
+        # Normalize the feature data
+        channels_to_normalize = [0, 1, 2, 3, 4]
+        for c in channels_to_normalize:
+            min_val = self.feature[:, c, ...].min(axis=(0, 1, 2), keepdims=True)
+            max_val = self.feature[:, c, ...].max(axis=(0, 1, 2), keepdims=True)
+            print(min_val)
+            print(max_val)
+
+            if c == 2:
+                self.feature[:, c, ...] = (self.feature[:, c, ...]) / 6
+            else:
+                self.feature[:, c, ...] = (self.feature[:, c, ...] - min_val) / (max_val - min_val)
+
+        print('max: ',self.feature[:,0,:,:].max(),self.feature[:,1,:,:].max(),self.feature[:,2,:,:].max(),self.feature[:,3,:,:].max(),self.feature[:,4,:,:].max())
+        print('min: ',self.feature[:,0,:,:].min(),self.feature[:,1,:,:].min(),self.feature[:,2,:,:].min(),self.feature[:,3,:,:].min(),self.feature[:,4,:,:].min())
+
+    def __len__(self):
+        return self.label.shape[0]
+    
+    def __getitem__(self, idx):
+
+        feature_data = self.feature[idx]
+        label_data = self.label[idx]
+
+        # Apply data augmentation
+        if np.random.rand() < 0.5:
+            # Random horizontal flip
+            feature_data = feature_data[:, :, ::-1].copy()
+            label_data = label_data[:, :, ::-1].copy()
+        
+        if np.random.rand() < 0.5:
+            # Random vertical flip
+            feature_data = np.flip(feature_data, axis=1).copy()
+            label_data = np.flip(label_data, axis=1).copy()
+
+        # Random rotation by 0, 90, 180, or 270 degrees
+        num_rotations = np.random.randint(4)
+        feature_data = np.rot90(feature_data, num_rotations, axes=(1, 2)).copy()
+        label_data = np.rot90(label_data, num_rotations, axes=(1, 2)).copy()
+
+        return torch.from_numpy(feature_data).float(), torch.from_numpy(label_data).float()
