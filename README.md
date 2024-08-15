@@ -6,3 +6,4 @@ Contents:
   Unet.py -- Unet architecture  
   dataloader.py -- load data and augmentation  
   train.py -- model training  
+  Prediction.py -- Prediction of maximum water depth and velocity for test cases
