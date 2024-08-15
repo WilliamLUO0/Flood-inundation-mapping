@@ -1,4 +1,10 @@
-# This file is used to train DenseUnet model
+# Rapid mapping of flood inundation by deep learning-based image super-resolution
+# Developer: Wenke Song
+# The University of Hong Kong
+# Contact email: songwk@connect.hku.hk
+# MIT License
+# Copyright (c) 2024 songwk0924
+
 from DenseUnet import *
 from ResUnet import *
 from Unet import *
