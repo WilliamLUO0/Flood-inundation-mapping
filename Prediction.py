@@ -99,6 +99,7 @@ col = 1310
 overlap_grid = np.ceil(nsize * overlap_rate).astype(int)
 ndown = nsize - overlap_grid
 
+""" 计算上下左右分别要补多少 """
 if (row - overlap_grid) % ndown != 0:
     npatch_row = (np.ceil((row - overlap_grid)/ndown)).astype(int)
     nrow_add = (npatch_row*ndown + overlap_grid - row).astype(int)
@@ -111,6 +112,7 @@ if (col - overlap_grid) % ndown != 0:
     n_left = np.ceil(ncol_add/2).astype(int)
     n_right = (ncol_add - n_left).astype(int)
 
+""" 补齐之后，big_image是fine-resolution, cdimage是coarse-resolution, counter计算每一个点覆盖了几次 """
 big_image = np.zeros((row + nrow_add, col + ncol_add))
 cdimage = np.zeros((row + nrow_add, col + ncol_add))
 counter = np.zeros((row + nrow_add, col + ncol_add))
@@ -199,6 +201,7 @@ print("PCC: {:.4f}".format(corrcoefcd))
 # 2. Regression performance
 # Accuracy interval
 def map_to_interval(x):
+    """ 给洪水分类别 """
 
     if x < 0.05:
         return 1
@@ -257,6 +260,7 @@ micro_csi = micro_tp / (micro_tp + micro_fn + micro_fp) if micro_tp + micro_fn +
 micro_f1 = 2 * (micro_precision * micro_recall) / (micro_precision + micro_recall) if micro_precision + micro_recall > 0 else 0
 
 print(f"Micro-averaged Precision = {micro_precision:.4f}, Recall = {micro_recall:.4f}, CSI = {micro_csi:.4f}, F1 = {micro_f1:.4f}")
+""" for class_label in np.unique(fd_intervals): """
 for class_label in np.unique(big_image_intervals):
     precision, recall, csi, f1= calculate_precision_recall(big_image_intervals, fd_intervals, class_label)
     print(f"Class {class_label}: Precision = {precision:.4f}, Recall = {recall:.4f}, CSI = {csi:.4f}, F1 = {f1:.4f}")
@@ -264,6 +268,7 @@ for class_label in np.unique(big_image_intervals):
 print("Accuracy: {:.2%}".format(accuracybig))
 
 print('---------CD---------')
+""" for class_label in np.unique(fd_intervals): """
 for class_label in np.unique(big_image_intervals):
     precision, recall, csi, f1= calculate_precision_recall(cd_image_intervals, fd_intervals, class_label)
     print(f"Class {class_label}: Precision = {precision:.4f}, Recall = {recall:.4f}, CSI = {csi:.4f}, F1 = {f1:.4f}")

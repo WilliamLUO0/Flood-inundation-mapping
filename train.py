@@ -41,10 +41,12 @@ bs = 256
 dataset = NpyDataset('/media/hd02/wksong/dm/pftmin', '/media/hd02/wksong/dm/lftmin')
 train_size = int(0.8 * len(dataset))
 val_size = len(dataset) - train_size
-generator = torch.Generator().manual_seed(seed) 
+generator = torch.Generator().manual_seed(seed)
+""" 只保证了划分可复现，data augmentation没有包括 """
 train_dataset, val_dataset = random_split(dataset, [train_size, val_size],generator=generator)
 
 train_dataloader = DataLoader(train_dataset, batch_size=bs, shuffle=True,num_workers=4)
+""" 验证集的shuffle应该是False """
 val_dataloader = DataLoader(val_dataset, batch_size=bs, shuffle=True,num_workers=4)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -57,6 +59,7 @@ model.float()
 
 if torch.cuda.device_count() > 1:
     print("Use ", torch.cuda.device_count(), " GPUs")
+    """ 用DDP比较好 """
     model = nn.DataParallel(model)
 
 model = model.to(device)
@@ -107,6 +110,7 @@ for epoch in range(epochs):
         
         # mask
         mask = inputs[:, 0, :, :]
+        """ 用0来表示域外吗兄弟！ """
         mask = (mask != 0).float().to(device)
 
         # forward
@@ -115,6 +119,8 @@ for epoch in range(epochs):
         total_train_loss += loss.item()
 
         # backward
+        """ optimizer.zero_grad(set_to_none=True) """
+        """ 用AMP降显存+提速 """
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -173,6 +179,7 @@ for epoch in range(epochs):
         torch.save(model, "/outputpthd/{}/model_{}.pth".format(date,epoch+1))
         print("model_{}.pth have saved".format(epoch+1))
 
+""" 存储的时候存state_dict而不是整个对象，因为跨单卡多卡加载更简单 """
 torch.save(model, "/outputpthd/{}/model_final.pth".format(date))
 print("model_final.pth have saved")
 # wandb.finish()

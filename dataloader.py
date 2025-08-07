@@ -14,7 +14,8 @@ import os
 
 class NpyDataset(Dataset):
     def __init__(self, feature_path, label_path):
-        
+
+        """ 这是字典序，用正则表达式用自然排序（文件名中的数字排序）"""
         feature_list = sorted(os.listdir(feature_path))
         label_list = sorted(os.listdir(label_path))
 
@@ -28,6 +29,7 @@ class NpyDataset(Dataset):
         # print(f'label shape: {self.label.shape}')
 
         # Find indices where feature is not all zeros
+        """ 域外值不应该是NAN吗 这里应该额外加一个mask channel """
         valid_indices = np.array([i for i in range(len(feature)) if np.any(feature[i])])
 
         # Only keep samples where the feature is not all zeros
@@ -35,6 +37,7 @@ class NpyDataset(Dataset):
         self.label = label[valid_indices]
 
         # Normalize the feature data
+        """ 这里发生了验证集的泄露吧，计算min max的时候不应该包含验证集 """
         channels_to_normalize = [0, 1, 2, 3, 4]
         for c in channels_to_normalize:
             min_val = self.feature[:, c, ...].min(axis=(0, 1, 2), keepdims=True)
@@ -47,13 +50,17 @@ class NpyDataset(Dataset):
             else:
                 self.feature[:, c, ...] = (self.feature[:, c, ...] - min_val) / (max_val - min_val)
 
-        print('max: ',self.feature[:,0,:,:].max(),self.feature[:,1,:,:].max(),self.feature[:,2,:,:].max(),self.feature[:,3,:,:].max(),self.feature[:,4,:,:].max())
-        print('min: ',self.feature[:,0,:,:].min(),self.feature[:,1,:,:].min(),self.feature[:,2,:,:].min(),self.feature[:,3,:,:].min(),self.feature[:,4,:,:].min())
+        print('max: ', self.feature[:, 0, :, :].max(), self.feature[:, 1, :, :].max(), self.feature[:, 2, :, :].max(),
+              self.feature[:, 3, :, :].max(), self.feature[:, 4, :, :].max())
+        print('min: ', self.feature[:, 0, :, :].min(), self.feature[:, 1, :, :].min(), self.feature[:, 2, :, :].min(),
+              self.feature[:, 3, :, :].min(), self.feature[:, 4, :, :].min())
 
     def __len__(self):
         return self.label.shape[0]
-    
+
     def __getitem__(self, idx):
+        """ 写法有点冗余，一共应该是有8种数据增强，无翻转+0 无翻转+90 无翻转+180 无翻转+270 H翻转+0 V翻转+0 H翻转+90 H翻转+270
+       目前的写法并不是均匀采样这八种，因此需要修改一下 """
 
         feature_data = self.feature[idx]
         label_data = self.label[idx]
@@ -63,7 +70,7 @@ class NpyDataset(Dataset):
             # Random horizontal flip
             feature_data = feature_data[:, :, ::-1].copy()
             label_data = label_data[:, :, ::-1].copy()
-        
+
         if np.random.rand() < 0.5:
             # Random vertical flip
             feature_data = np.flip(feature_data, axis=1).copy()
